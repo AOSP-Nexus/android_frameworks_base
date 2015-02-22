@@ -295,5 +295,11 @@
 
     <!-- Enable the default volume dialog -->
     <bool name="enable_volume_ui">true</bool>
+
+    <!-- Location tile: number of days to show after feature is used. -->
+    <integer name="days_to_show_location_tile">5</integer>
+
+    <!-- Cast tile: number of days to show after feature is used. -->
+    <integer name="days_to_show_cast_tile">3</integer>
 </resources>
 
