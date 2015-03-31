@@ -137,14 +137,13 @@ public class DozeService extends DreamService implements ProximitySensorManager.
         setWindowless(true);
 
         mSensors = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
-        mSigMotionSensor = new TriggerSensor(Sensor.TYPE_SIGNIFICANT_MOTION,
-                mDozeParameters.getPulseOnSigMotion(), mDozeParameters.getVibrateOnSigMotion(),
-                DozeLog.PULSE_REASON_SENSOR_SIGMOTION);
-        mPickupSensor = new TriggerSensor(Sensor.TYPE_PICK_UP_GESTURE,
-                mDozeParameters.getPulseOnPickup(), mDozeParameters.getVibrateOnPickup(),
-                DozeLog.PULSE_REASON_SENSOR_PICKUP);
         mUseAccelerometer = mDozeParameters.setUsingAccelerometerAsSensorPickUp();
-        if (mUseAccelerometer) {
+        if (!mUseAccelerometer) {
+            mSigMotionSensor = new TriggerSensor(Sensor.TYPE_SIGNIFICANT_MOTION,
+                mDozeParameters.getPulseOnSigMotion(), mDozeParameters.getVibrateOnSigMotion());
+            mPickupSensor = new TriggerSensor(Sensor.TYPE_PICK_UP_GESTURE,
+                mDozeParameters.getPulseOnPickup(), mDozeParameters.getVibrateOnPickup());
+        } else {
             mProximitySensorManager = new ProximitySensorManager(mContext, this);
             mShakeSensorManager = new ShakeSensorManager(mContext, this);
         }
@@ -168,7 +167,7 @@ public class DozeService extends DreamService implements ProximitySensorManager.
         if (mDozeParameters.getPocketMode()) {
             startPulsingFromSensor();
         } else {
-            requestPulse(DozeLog.PULSE_REASON_INTENT);
+            requestPulse();
         }
     }
 
@@ -232,7 +231,7 @@ public class DozeService extends DreamService implements ProximitySensorManager.
                     }
                     mWakeLock.release(); // needs to be unconditional to balance acquire
                 }
-            }, DozeLog.PULSE_REASON_INTENT);
+            });
         }
     }
 
@@ -320,6 +319,7 @@ public class DozeService extends DreamService implements ProximitySensorManager.
                 public void onProximityResult(int result) {
                     final boolean isNear = result == RESULT_NEAR;
                     final boolean isAccSensor = mUseAccelerometer && mDozeParameters.getShakeMode();
+                    DozeLog.traceProximityResult(isNear, SystemClock.uptimeMillis() - start);
                     final long end = SystemClock.uptimeMillis();
                     DozeLog.traceProximityResult(isNear, end - start, reason);
                     if (nonBlocking) {
