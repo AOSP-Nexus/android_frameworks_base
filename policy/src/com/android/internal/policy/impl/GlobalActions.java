@@ -110,7 +110,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private static final String GLOBAL_ACTION_KEY_SETTINGS = "settings";
     private static final String GLOBAL_ACTION_KEY_LOCKDOWN = "lockdown";
     private static final String GLOBAL_ACTION_KEY_VOICEASSIST = "voiceassist";
-    private static final String GLOBAL_ACTION_KEY_SCREENSHOT = "screenshot";
 
     private final Context mContext;
     private final WindowManagerFuncs mWindowManagerFuncs;
@@ -298,8 +297,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                     mItems.add(new PowerAction());
                 } else if (GLOBAL_ACTION_KEY_REBOOT.equals(actionKey)) {
                     mItems.add(new RebootAction());
-                } else if (GLOBAL_ACTION_KEY_SCREENSHOT.equals(actionKey)) {
-                    mItems.add(new ScreenShotAction());
                 } else if (GLOBAL_ACTION_KEY_AIRPLANE.equals(actionKey)) {
                     mItems.add(mAirplaneModeOn);
                 } else if (GLOBAL_ACTION_KEY_BUGREPORT.equals(actionKey)) {
@@ -416,96 +413,6 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                 }
             } else {
                 showDialog(mKeyguardShowing, mKeyguardSecure, mDeviceProvisioned, true);
-            }
-        }
-    }
-
-    private final class ScreenShotAction extends SinglePressAction {
-        private ScreenShotAction(){
-            super(com.android.internal.R.drawable.ic_lock_screenshot,
-                    R.string.global_action_screenshot);
-        }
-
-        public void onPress() {
-            takeScreenshot();
-        }
-
-        public boolean showDuringKeyguard() {
-            return true;
-        }
-
-        public boolean showBeforeProvisioning() {
-            return true;
-        }
-    }
-
-    final Object mScreenshotLock = new Object();
-    ServiceConnection mScreenshotConnection = null;
-
-    final Runnable mScreenshotTimeout = new Runnable() {
-        @Override public void run() {
-            synchronized (mScreenshotLock) {
-                if (mScreenshotConnection != null) {
-                    mContext.unbindService(mScreenshotConnection);
-                    mScreenshotConnection = null;
-                }
-            }
-        }
-    };
-
-    private void takeScreenshot() {
-        synchronized (mScreenshotLock) {
-            if (mScreenshotConnection != null) {
-                return;
-            }
-            ComponentName cn = new ComponentName("com.android.systemui",
-                    "com.android.systemui.screenshot.TakeScreenshotService");
-            Intent intent = new Intent();
-            intent.setComponent(cn);
-            ServiceConnection conn = new ServiceConnection() {
-                @Override
-                public void onServiceConnected(ComponentName name, IBinder service) {
-                    synchronized (mScreenshotLock) {
-                        if (mScreenshotConnection != this) {
-                            return;
-                        }
-                        Messenger messenger = new Messenger(service);
-                        Message msg = Message.obtain(null, 1);
-                        final ServiceConnection myConn = this;
-                        Handler h = new Handler(mHandler.getLooper()) {
-                            @Override
-                            public void handleMessage(Message msg) {
-                                synchronized (mScreenshotLock) {
-                                    if (mScreenshotConnection == myConn) {
-                                        mContext.unbindService(mScreenshotConnection);
-                                        mScreenshotConnection = null;
-                                        mHandler.removeCallbacks(mScreenshotTimeout);
-                                    }
-                                }
-                            }
-                        };
-                        msg.replyTo = new Messenger(h);
-                        msg.arg1 = msg.arg2 = 0;
-
-                        /* wait for the dialog box to close */
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ie) {
-                        }
-
-                        /* take the screenshot */
-                        try {
-                            messenger.send(msg);
-                        } catch (RemoteException e) {
-                        }
-                    }
-                }
-                @Override
-                public void onServiceDisconnected(ComponentName name) {}
-            };
-            if (mContext.bindService(intent, conn, Context.BIND_AUTO_CREATE)) {
-                mScreenshotConnection = conn;
-                mHandler.postDelayed(mScreenshotTimeout, 10000);
             }
         }
     }
