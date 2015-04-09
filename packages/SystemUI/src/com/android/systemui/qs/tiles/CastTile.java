@@ -16,7 +16,6 @@
 
 package com.android.systemui.qs.tiles;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.provider.Settings;
@@ -29,7 +28,6 @@ import com.android.systemui.R;
 import com.android.systemui.qs.QSDetailItems;
 import com.android.systemui.qs.QSDetailItems.Item;
 import com.android.systemui.qs.QSTile;
-import com.android.systemui.qs.UsageTracker;
 import com.android.systemui.statusbar.policy.CastController;
 import com.android.systemui.statusbar.policy.CastController.CastDevice;
 import com.android.systemui.statusbar.policy.KeyguardMonitor;
@@ -46,22 +44,12 @@ public class CastTile extends QSTile<QSTile.BooleanState> {
     private final CastDetailAdapter mDetailAdapter;
     private final KeyguardMonitor mKeyguard;
     private final Callback mCallback = new Callback();
-    private final UsageTracker mUsageTracker;
 
     public CastTile(Host host) {
         super(host);
         mController = host.getCastController();
         mDetailAdapter = new CastDetailAdapter();
         mKeyguard = host.getKeyguardMonitor();
-        mUsageTracker = new UsageTracker(host.getContext(), CastTile.class);
-        mUsageTracker.setListening(true);
-
-    }
-
-    @Override
-    protected void handleDestroy() {
-        super.handleDestroy();
-        mUsageTracker.setListening(false);
     }
 
     @Override
@@ -102,8 +90,7 @@ public class CastTile extends QSTile<QSTile.BooleanState> {
 
     @Override
     protected void handleUpdateState(BooleanState state, Object arg) {
-        // Check if tile has been recently used, if not destroy from view
-        state.visible = !(mKeyguard.isSecure() && mKeyguard.isShowing()) && mUsageTracker.isRecentlyUsed();
+        state.visible = !(mKeyguard.isSecure() && mKeyguard.isShowing());
         state.label = mContext.getString(R.string.quick_settings_cast_title);
         state.value = false;
         state.autoMirrorDrawable = false;
@@ -258,21 +245,4 @@ public class CastTile extends QSTile<QSTile.BooleanState> {
             mController.stopCasting(device);
         }
     }
-
-    /**
-     * This will catch broadcasts for changes in hotspot state so we can show
-     * the hotspot tile for a number of days after use.
-     */
-    public static class CastTileChangedReceiver extends BroadcastReceiver {
-        private UsageTracker mUsageTracker;
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (mUsageTracker == null) {
-                mUsageTracker = new UsageTracker(context, CastTile.class);
-            }
-            mUsageTracker.trackUsage();
-        }
-    }
-
 }
