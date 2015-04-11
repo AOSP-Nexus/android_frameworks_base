@@ -2670,6 +2670,12 @@ public final class Settings {
         /** @hide */ public static final int HEADS_UP_TICKER_ON = 1;
 
         /**
+         * SystemUI flags (Immersive mode)
+         * @hide
+         */
+        public static final String SYSTEM_UI_FLAGS = "system_ui_flags";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *

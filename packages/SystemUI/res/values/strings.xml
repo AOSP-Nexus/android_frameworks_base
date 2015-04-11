@@ -474,6 +474,9 @@
     <string name="accessibility_quick_settings_hotspot_changed_on">Mobile hotspot turned on.</string>
     <!-- Announcement made when the screen stopped casting (not shown on the screen). [CHAR LIMIT=NONE] -->
     <string name="accessibility_casting_turned_off">Screen casting stopped.</string>
+    <!-- Announcement made when immersive mode is toggled on/off -->
+    <string name="accessibility_quick_settings_immersive_off">Immersive mode: Off</string>
+    <string name="accessibility_quick_settings_immersive_full">Immersive mode: Full</string>
 
     <!-- Content description of the display brightness slider (not shown on the screen). [CHAR LIMIT=NONE] -->
     <string name="accessibility_brightness">Display brightness</string>
@@ -638,6 +641,8 @@
     <string name="quick_settings_notifications_label">Notifications</string>
     <!-- QuickSettings: Flashlight [CHAR LIMIT=NONE] -->
     <string name="quick_settings_flashlight_label">Flashlight</string>
+    <!-- QuickSettings: Immersive mode [CHAR LIMIT=NONE] -->
+    <string name="quick_settings_immersive_label">Immersive</string>
     <!-- QuickSettings: Cellular detail panel title [CHAR LIMIT=NONE] -->
     <string name="quick_settings_cellular_detail_title">Cellular data</string>
     <!-- QuickSettings: Cellular detail panel, data usage title [CHAR LIMIT=NONE] -->
