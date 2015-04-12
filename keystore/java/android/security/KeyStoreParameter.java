@@ -18,16 +18,15 @@ package android.security;
 
 import android.content.Context;
 
-import java.security.KeyPairGenerator;
+import java.security.Key;
 import java.security.KeyStore.ProtectionParameter;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+
+import javax.crypto.Cipher;
 
 /**
- * This provides the optional parameters that can be specified for
- * {@code KeyStore} entries that work with
+ * Parameters specifying how to secure and restrict the use of a key being
+ * imported into the
  * <a href="{@docRoot}training/articles/keystore.html">Android KeyStore
  * facility</a>. The Android KeyStore facility is accessed through a
  * {@link java.security.KeyStore} API using the {@code AndroidKeyStore}
@@ -38,43 +37,33 @@ import java.util.Set;
  * there is only one logical instance of the {@code KeyStore} per application
  * UID so apps using the {@code sharedUid} facility will also share a
  * {@code KeyStore}.
- * <p>
- * Keys may be generated using the {@link KeyPairGenerator} facility with a
- * {@link KeyPairGeneratorSpec} to specify the entry's {@code alias}. A
- * self-signed X.509 certificate will be attached to generated entries, but that
- * may be replaced at a later time by a certificate signed by a real Certificate
- * Authority.
  */
 public final class KeyStoreParameter implements ProtectionParameter {
     private int mFlags;
     private final Date mKeyValidityStart;
     private final Date mKeyValidityForOriginationEnd;
     private final Date mKeyValidityForConsumptionEnd;
-    private final @KeyStoreKeyConstraints.PurposeEnum Integer mPurposes;
-    private final @KeyStoreKeyConstraints.AlgorithmEnum Integer mAlgorithm;
-    private final @KeyStoreKeyConstraints.PaddingEnum Integer mPadding;
-    private final @KeyStoreKeyConstraints.DigestEnum Integer mDigest;
-    private final @KeyStoreKeyConstraints.BlockModeEnum Integer mBlockMode;
-    private final Integer mMinSecondsBetweenOperations;
-    private final Integer mMaxUsesPerBoot;
-    private final Set<Integer> mUserAuthenticators;
-    private final Integer mUserAuthenticationValidityDurationSeconds;
+    private final @KeyStoreKeyConstraints.PurposeEnum int mPurposes;
+    private final @KeyStoreKeyConstraints.PaddingEnum int mPaddings;
+    private final @KeyStoreKeyConstraints.DigestEnum Integer mDigests;
+    private final @KeyStoreKeyConstraints.BlockModeEnum int mBlockModes;
+    private final boolean mRandomizedEncryptionRequired;
+    private final @KeyStoreKeyConstraints.UserAuthenticatorEnum int mUserAuthenticators;
+    private final int mUserAuthenticationValidityDurationSeconds;
 
     private KeyStoreParameter(int flags,
             Date keyValidityStart,
             Date keyValidityForOriginationEnd,
             Date keyValidityForConsumptionEnd,
-            @KeyStoreKeyConstraints.PurposeEnum Integer purposes,
-            @KeyStoreKeyConstraints.AlgorithmEnum Integer algorithm,
-            @KeyStoreKeyConstraints.PaddingEnum Integer padding,
-            @KeyStoreKeyConstraints.DigestEnum Integer digest,
-            @KeyStoreKeyConstraints.BlockModeEnum Integer blockMode,
-            Integer minSecondsBetweenOperations,
-            Integer maxUsesPerBoot,
-            Set<Integer> userAuthenticators,
-            Integer userAuthenticationValidityDurationSeconds) {
-        if ((userAuthenticationValidityDurationSeconds != null)
-                && (userAuthenticationValidityDurationSeconds < 0)) {
+            @KeyStoreKeyConstraints.PurposeEnum int purposes,
+            @KeyStoreKeyConstraints.PaddingEnum int paddings,
+            @KeyStoreKeyConstraints.DigestEnum Integer digests,
+            @KeyStoreKeyConstraints.BlockModeEnum int blockModes,
+            boolean randomizedEncryptionRequired,
+            @KeyStoreKeyConstraints.UserAuthenticatorEnum int userAuthenticators,
+            int userAuthenticationValidityDurationSeconds) {
+        if ((userAuthenticationValidityDurationSeconds < 0)
+                && (userAuthenticationValidityDurationSeconds != -1)) {
             throw new IllegalArgumentException(
                     "userAuthenticationValidityDurationSeconds must not be negative");
         }
@@ -84,15 +73,11 @@ public final class KeyStoreParameter implements ProtectionParameter {
         mKeyValidityForOriginationEnd = keyValidityForOriginationEnd;
         mKeyValidityForConsumptionEnd = keyValidityForConsumptionEnd;
         mPurposes = purposes;
-        mAlgorithm = algorithm;
-        mPadding = padding;
-        mDigest = digest;
-        mBlockMode = blockMode;
-        mMinSecondsBetweenOperations = minSecondsBetweenOperations;
-        mMaxUsesPerBoot = maxUsesPerBoot;
-        mUserAuthenticators = (userAuthenticators != null)
-                ? new HashSet<Integer>(userAuthenticators)
-                : Collections.<Integer>emptySet();
+        mPaddings = paddings;
+        mDigests = digests;
+        mBlockModes = blockModes;
+        mRandomizedEncryptionRequired = randomizedEncryptionRequired;
+        mUserAuthenticators = userAuthenticators;
         mUserAuthenticationValidityDurationSeconds = userAuthenticationValidityDurationSeconds;
     }
 
@@ -144,105 +129,96 @@ public final class KeyStoreParameter implements ProtectionParameter {
     }
 
     /**
-     * Gets the set of purposes for which the key can be used to the provided set of purposes.
-     *
-     * @return set of purposes or {@code null} if the key can be used for any purpose.
+     * Gets the set of purposes for which the key can be used.
      *
      * @hide
      */
-    public @KeyStoreKeyConstraints.PurposeEnum Integer getPurposes() {
+    public @KeyStoreKeyConstraints.PurposeEnum int getPurposes() {
         return mPurposes;
     }
 
     /**
-     * Gets the algorithm to which the key is restricted.
+     * Gets the set of padding schemes to which the key is restricted.
      *
-     * @return algorithm or {@code null} if it's not restricted.
      * @hide
      */
-    public @KeyStoreKeyConstraints.AlgorithmEnum Integer getAlgorithm() {
-        return mAlgorithm;
+    public @KeyStoreKeyConstraints.PaddingEnum int getPaddings() {
+        return mPaddings;
     }
 
     /**
-     * Gets the padding scheme to which the key is restricted.
+     * Gets the set of digests to which the key is restricted.
      *
-     * @return padding scheme or {@code null} if the padding scheme is not restricted.
+     * @throws IllegalStateException if this restriction has not been specified.
+     *
+     * @see #isDigestsSpecified()
      *
      * @hide
      */
-    public @KeyStoreKeyConstraints.PaddingEnum Integer getPadding() {
-        return mPadding;
+    public @KeyStoreKeyConstraints.DigestEnum int getDigests() {
+        if (mDigests == null) {
+            throw new IllegalStateException("Digests not specified");
+        }
+        return mDigests;
     }
 
     /**
-     * Gets the digest to which the key is restricted when generating signatures or Message
-     * Authentication Codes (MACs).
+     * Returns {@code true} if digest restrictions have been specified.
      *
-     * @return digest or {@code null} if the digest is not restricted.
+     * @see #getDigests()
      *
      * @hide
      */
-    public @KeyStoreKeyConstraints.DigestEnum Integer getDigest() {
-        return mDigest;
+    public boolean isDigestsSpecified() {
+        return mDigests != null;
     }
 
     /**
-     * Gets the block mode to which the key is restricted when used for encryption or decryption.
-     *
-     * @return block more or {@code null} if block mode is not restricted.
+     * Gets the set of block modes to which the key is restricted.
      *
      * @hide
      */
-    public @KeyStoreKeyConstraints.BlockModeEnum Integer getBlockMode() {
-        return mBlockMode;
+    public @KeyStoreKeyConstraints.BlockModeEnum int getBlockModes() {
+        return mBlockModes;
     }
 
     /**
-     * Gets the minimum number of seconds that must expire since the most recent use of the key
-     * before it can be used again.
-     *
-     * @return number of seconds or {@code null} if there is no restriction on how frequently a key
-     *         can be used.
+     * Returns {@code true} if encryption using this key must be sufficiently randomized to produce
+     * different ciphertexts for the same plaintext every time. The formal cryptographic property
+     * being required is <em>indistinguishability under chosen-plaintext attack ({@code
+     * IND-CPA})</em>. This property is important because it mitigates several classes of
+     * weaknesses due to which ciphertext may leak information about plaintext. For example, if a
+     * given plaintext always produces the same ciphertext, an attacker may see the repeated
+     * ciphertexts and be able to deduce something about the plaintext.
      *
      * @hide
      */
-    public Integer getMinSecondsBetweenOperations() {
-        return mMinSecondsBetweenOperations;
+    public boolean isRandomizedEncryptionRequired() {
+        return mRandomizedEncryptionRequired;
     }
 
     /**
-     * Gets the number of times the key can be used without rebooting the device.
+     * Gets the set of user authenticators which protect access to this key. The key can only be
+     * used iff the user has authenticated to at least one of these user authenticators.
      *
-     * @return maximum number of times or {@code null} if there is no restriction.
-     * @hide
-     */
-    public Integer getMaxUsesPerBoot() {
-        return mMaxUsesPerBoot;
-    }
-
-    /**
-     * Gets the user authenticators which protect access to this key. The key can only be used iff
-     * the user has authenticated to at least one of these user authenticators.
-     *
-     * @return user authenticators or empty set if the key can be used without user authentication.
+     * @return user authenticators or {@code 0} if the key can be used without user authentication.
      *
      * @hide
      */
-    public Set<Integer> getUserAuthenticators() {
-        return new HashSet<Integer>(mUserAuthenticators);
+    public @KeyStoreKeyConstraints.UserAuthenticatorEnum int getUserAuthenticators() {
+        return mUserAuthenticators;
     }
 
     /**
      * Gets the duration of time (seconds) for which this key can be used after the user
      * successfully authenticates to one of the associated user authenticators.
      *
-     * @return duration in seconds or {@code null} if not restricted. {@code 0} means authentication
+     * @return duration in seconds or {@code -1} if not restricted. {@code 0} means authentication
      *         is required for every use of the key.
      *
      * @hide
      */
-    public Integer getUserAuthenticationValidityDurationSeconds() {
+    public int getUserAuthenticationValidityDurationSeconds() {
         return mUserAuthenticationValidityDurationSeconds;
     }
 
@@ -268,15 +244,13 @@ public final class KeyStoreParameter implements ProtectionParameter {
         private Date mKeyValidityStart;
         private Date mKeyValidityForOriginationEnd;
         private Date mKeyValidityForConsumptionEnd;
-        private @KeyStoreKeyConstraints.PurposeEnum Integer mPurposes;
-        private @KeyStoreKeyConstraints.AlgorithmEnum Integer mAlgorithm;
-        private @KeyStoreKeyConstraints.PaddingEnum Integer mPadding;
-        private @KeyStoreKeyConstraints.DigestEnum Integer mDigest;
-        private @KeyStoreKeyConstraints.BlockModeEnum Integer mBlockMode;
-        private Integer mMinSecondsBetweenOperations;
-        private Integer mMaxUsesPerBoot;
-        private Set<Integer> mUserAuthenticators;
-        private Integer mUserAuthenticationValidityDurationSeconds;
+        private @KeyStoreKeyConstraints.PurposeEnum int mPurposes;
+        private @KeyStoreKeyConstraints.PaddingEnum int mPaddings;
+        private @KeyStoreKeyConstraints.DigestEnum Integer mDigests;
+        private @KeyStoreKeyConstraints.BlockModeEnum int mBlockModes;
+        private boolean mRandomizedEncryptionRequired = true;
+        private @KeyStoreKeyConstraints.UserAuthenticatorEnum int mUserAuthenticators;
+        private int mUserAuthenticationValidityDurationSeconds = -1;
 
         /**
          * Creates a new instance of the {@code Builder} with the given
@@ -310,7 +284,7 @@ public final class KeyStoreParameter implements ProtectionParameter {
         /**
          * Sets the time instant before which the key is not yet valid.
          *
-         * <b>By default, the key is valid at any instant.
+         * <p>By default, the key is valid at any instant.
          *
          * @see #setKeyValidityEnd(Date)
          *
@@ -324,7 +298,7 @@ public final class KeyStoreParameter implements ProtectionParameter {
         /**
          * Sets the time instant after which the key is no longer valid.
          *
-         * <b>By default, the key is valid at any instant.
+         * <p>By default, the key is valid at any instant.
          *
          * @see #setKeyValidityStart(Date)
          * @see #setKeyValidityForConsumptionEnd(Date)
@@ -341,7 +315,7 @@ public final class KeyStoreParameter implements ProtectionParameter {
         /**
          * Sets the time instant after which the key is no longer valid for encryption and signing.
          *
-         * <b>By default, the key is valid at any instant.
+         * <p>By default, the key is valid at any instant.
          *
          * @see #setKeyValidityForConsumptionEnd(Date)
          *
@@ -356,7 +330,7 @@ public final class KeyStoreParameter implements ProtectionParameter {
          * Sets the time instant after which the key is no longer valid for decryption and
          * verification.
          *
-         * <b>By default, the key is valid at any instant.
+         * <p>By default, the key is valid at any instant.
          *
          * @see #setKeyValidityForOriginationEnd(Date)
          *
@@ -368,9 +342,9 @@ public final class KeyStoreParameter implements ProtectionParameter {
         }
 
         /**
-         * Restricts the purposes for which the key can be used to the provided set of purposes.
+         * Restricts the key to being used only for the provided set of purposes.
          *
-         * <p>By default, the key can be used for encryption, decryption, signing, and verification.
+         * <p>This restriction must be specified. There is no default.
          *
          * @hide
          */
@@ -380,84 +354,84 @@ public final class KeyStoreParameter implements ProtectionParameter {
         }
 
         /**
-         * Sets the algorithm of the key.
-         *
-         * <p>The algorithm of symmetric keys can be deduced from the key itself. Thus, explicitly
-         * specifying the algorithm of symmetric keys using this method is not necessary.
-         *
-         * @hide
-         */
-        public Builder setAlgorithm(@KeyStoreKeyConstraints.AlgorithmEnum int algorithm) {
-            mAlgorithm = algorithm;
-            return this;
-        }
-
-        /**
-         * Restricts the key to being used only with the provided padding scheme. Attempts to use
+         * Restricts the key to being used only with the provided padding schemes. Attempts to use
          * the key with any other padding will be rejected.
          *
          * <p>This restriction must be specified for keys which are used for encryption/decryption.
          *
          * @hide
          */
-        public Builder setPadding(@KeyStoreKeyConstraints.PaddingEnum int padding) {
-            mPadding = padding;
+        public Builder setPaddings(@KeyStoreKeyConstraints.PaddingEnum int paddings) {
+            mPaddings = paddings;
             return this;
         }
 
         /**
-         * Restricts the key to being used only with the provided digest when generating signatures
-         * or Message Authentication Codes (MACs). Attempts to use the key with any other digest
-         * will be rejected.
+         * Restricts the key to being used only with the provided digests when generating signatures
+         * or HMACs. Attempts to use the key with any other digest will be rejected.
          *
-         * <p>For MAC keys, the default is to restrict to the digest specified in the key algorithm
-         * name. For asymmetric signing keys this constraint must be specified because there is no
-         * default.
-         *
-         * @see java.security.Key#getAlgorithm()
+         * <p>For HMAC keys, the default is to restrict to the digest specified in
+         * {@link Key#getAlgorithm()}. For asymmetric signing keys this constraint must be specified
+         * because there is no default.
          *
          * @hide
          */
-        public Builder setDigest(@KeyStoreKeyConstraints.DigestEnum int digest) {
-            mDigest = digest;
+        public Builder setDigests(@KeyStoreKeyConstraints.DigestEnum int digests) {
+            mDigests = digests;
             return this;
         }
 
         /**
-         * Restricts the key to being used only with the provided block mode when encrypting or
-         * decrypting. Attempts to use the key with any other block modes will be rejected.
+         * Restricts the key to being used only with the provided block modes. Attempts to use the
+         * key with any other block modes will be rejected.
          *
-         * <p>This restriction must be specified for keys which are used for encryption/decryption.
+         * <p>This restriction must be specified for symmetric encryption/decryption keys.
          *
          * @hide
          */
-        public Builder setBlockMode(@KeyStoreKeyConstraints.BlockModeEnum int blockMode) {
-            mBlockMode = blockMode;
+        public Builder setBlockModes(@KeyStoreKeyConstraints.BlockModeEnum int blockModes) {
+            mBlockModes = blockModes;
             return this;
         }
 
         /**
-         * Sets the minimum number of seconds that must expire since the most recent use of the key
-         * before it can be used again.
+         * Sets whether encryption using this key must be sufficiently randomized to produce
+         * different ciphertexts for the same plaintext every time. The formal cryptographic
+         * property being required is <em>indistinguishability under chosen-plaintext attack
+         * ({@code IND-CPA})</em>. This property is important because it mitigates several classes
+         * of weaknesses due to which ciphertext may leak information about plaintext. For example,
+         * if a given plaintext always produces the same ciphertext, an attacker may see the
+         * repeated ciphertexts and be able to deduce something about the plaintext.
          *
-         * <p>By default, there is no restriction on how frequently a key can be used.
+         * <p>By default, {@code IND-CPA} is required.
+         *
+         * <p>When {@code IND-CPA} is required:
+         * <ul>
+         * <li>transformation which do not offer {@code IND-CPA}, such as symmetric ciphers using
+         * {@code ECB} mode or RSA encryption without padding, are prohibited;</li>
+         * <li>in transformations which use an IV, such as symmetric ciphers in {@code CBC},
+         * {@code CTR}, and {@code GCM} block modes, caller-provided IVs are rejected when
+         * encrypting, to ensure that only random IVs are used.</li>
+         *
+         * <p>Before disabling this requirement, consider the following approaches instead:
+         * <ul>
+         * <li>If you are generating a random IV for encryption and then initializing a {@code}
+         * Cipher using the IV, the solution is to let the {@code Cipher} generate a random IV
+         * instead. This will occur if the {@code Cipher} is initialized for encryption without an
+         * IV. The IV can then be queried via {@link Cipher#getIV()}.</li>
+         * <li>If you are generating a non-random IV (e.g., an IV derived from something not fully
+         * random, such as the name of the file being encrypted, or transaction ID, or password,
+         * or a device identifier), consider changing your design to use a random IV which will then
+         * be provided in addition to the ciphertext to the entities which need to decrypt the
+         * ciphertext.</li>
+         * <li>If you are using RSA encryption without padding, consider switching to padding
+         * schemes which offer {@code IND-CPA}, such as PKCS#1 or OAEP.</li>
+         * </ul>
          *
          * @hide
          */
-        public Builder setMinSecondsBetweenOperations(int seconds) {
-            mMinSecondsBetweenOperations = seconds;
-            return this;
-        }
-
-        /**
-         * Sets the maximum number of times a key can be used without rebooting the device.
-         *
-         * <p>By default, the key can be used for an unlimited number of times.
-         *
-         * @hide
-         */
-        public Builder setMaxUsesPerBoot(int count) {
-            mMaxUsesPerBoot = count;
+        public Builder setRandomizedEncryptionRequired(boolean required) {
+            mRandomizedEncryptionRequired = required;
             return this;
         }
 
@@ -467,16 +441,16 @@ public final class KeyStoreParameter implements ProtectionParameter {
          *
          * <p>By default, the key can be used without user authentication.
          *
-         * @param userAuthenticators user authenticators or empty list if this key can be accessed
+         * @param userAuthenticators user authenticators or {@code 0} if this key can be accessed
          *        without user authentication.
          *
          * @see #setUserAuthenticationValidityDurationSeconds(int)
          *
          * @hide
          */
-        public Builder setUserAuthenticators(Set<Integer> userAuthenticators) {
-            mUserAuthenticators =
-                    (userAuthenticators != null) ? new HashSet<Integer>(userAuthenticators) : null;
+        public Builder setUserAuthenticators(
+                @KeyStoreKeyConstraints.UserAuthenticatorEnum int userAuthenticators) {
+            mUserAuthenticators = userAuthenticators;
             return this;
         }
 
@@ -489,7 +463,7 @@ public final class KeyStoreParameter implements ProtectionParameter {
          * @param seconds duration in seconds or {@code 0} if the user needs to authenticate for
          *        every use of the key.
          *
-         * @see #setUserAuthenticators(Set)
+         * @see #setUserAuthenticators(int)
          *
          * @hide
          */
@@ -510,12 +484,10 @@ public final class KeyStoreParameter implements ProtectionParameter {
                     mKeyValidityForOriginationEnd,
                     mKeyValidityForConsumptionEnd,
                     mPurposes,
-                    mAlgorithm,
-                    mPadding,
-                    mDigest,
-                    mBlockMode,
-                    mMinSecondsBetweenOperations,
-                    mMaxUsesPerBoot,
+                    mPaddings,
+                    mDigests,
+                    mBlockModes,
+                    mRandomizedEncryptionRequired,
                     mUserAuthenticators,
                     mUserAuthenticationValidityDurationSeconds);
         }

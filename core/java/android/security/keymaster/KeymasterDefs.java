@@ -47,21 +47,17 @@ public final class KeymasterDefs {
     public static final int KM_TAG_PURPOSE = KM_ENUM_REP | 1;
     public static final int KM_TAG_ALGORITHM = KM_ENUM | 2;
     public static final int KM_TAG_KEY_SIZE = KM_INT | 3;
-    public static final int KM_TAG_BLOCK_MODE = KM_ENUM | 4;
-    public static final int KM_TAG_DIGEST = KM_ENUM | 5;
-    public static final int KM_TAG_MAC_LENGTH = KM_INT | 6;
-    public static final int KM_TAG_PADDING = KM_ENUM | 7;
-    public static final int KM_TAG_RETURN_UNAUTHED = KM_BOOL | 8;
-    public static final int KM_TAG_CALLER_NONCE = KM_BOOL | 9;
+    public static final int KM_TAG_BLOCK_MODE = KM_ENUM_REP | 4;
+    public static final int KM_TAG_DIGEST = KM_ENUM_REP | 5;
+    public static final int KM_TAG_PADDING = KM_ENUM_REP | 6;
+    public static final int KM_TAG_RETURN_UNAUTHED = KM_BOOL | 7;
+    public static final int KM_TAG_CALLER_NONCE = KM_BOOL | 8;
 
     public static final int KM_TAG_RESCOPING_ADD = KM_ENUM_REP | 101;
     public static final int KM_TAG_RESCOPING_DEL = KM_ENUM_REP | 102;
     public static final int KM_TAG_BLOB_USAGE_REQUIREMENTS = KM_ENUM | 705;
 
     public static final int KM_TAG_RSA_PUBLIC_EXPONENT = KM_LONG | 200;
-    public static final int KM_TAG_DSA_GENERATOR = KM_BIGNUM | 201;
-    public static final int KM_TAG_DSA_P = KM_BIGNUM | 202;
-    public static final int KM_TAG_DSA_Q = KM_BIGNUM | 203;
     public static final int KM_TAG_ACTIVE_DATETIME = KM_DATE | 400;
     public static final int KM_TAG_ORIGINATION_EXPIRE_DATETIME = KM_DATE | 401;
     public static final int KM_TAG_USAGE_EXPIRE_DATETIME = KM_DATE | 402;
@@ -88,43 +84,21 @@ public final class KeymasterDefs {
     public static final int KM_TAG_NONCE = KM_BYTES | 1001;
     public static final int KM_TAG_CHUNK_LENGTH = KM_INT | 1002;
     public static final int KM_TAG_AUTH_TOKEN = KM_BYTES | 1003;
+    public static final int KM_TAG_MAC_LENGTH = KM_INT | 1004;
 
     // Algorithm values.
     public static final int KM_ALGORITHM_RSA = 1;
-    public static final int KM_ALGORITHM_DSA = 2;
-    public static final int KM_ALGORITHM_ECDSA = 3;
-    public static final int KM_ALGORITHM_ECIES = 4;
+    public static final int KM_ALGORITHM_EC = 3;
     public static final int KM_ALGORITHM_AES = 32;
-    public static final int KM_ALGORITHM_3DES = 33;
-    public static final int KM_ALGORITHM_SKIPJACK = 34;
-    public static final int KM_ALGORITHM_MARS = 48;
-    public static final int KM_ALGORITHM_RC6 = 49;
-    public static final int KM_ALGORITHM_SERPENT = 50;
-    public static final int KM_ALGORITHM_TWOFISH = 51;
-    public static final int KM_ALGORITHM_IDEA = 52;
-    public static final int KM_ALGORITHM_RC5 = 53;
-    public static final int KM_ALGORITHM_CAST5 = 54;
-    public static final int KM_ALGORITHM_BLOWFISH = 55;
-    public static final int KM_ALGORITHM_RC4 = 64;
-    public static final int KM_ALGORITHM_CHACHA20 = 65;
     public static final int KM_ALGORITHM_HMAC = 128;
 
     // Block modes.
     public static final int KM_MODE_FIRST_UNAUTHENTICATED = 1;
     public static final int KM_MODE_ECB = KM_MODE_FIRST_UNAUTHENTICATED;
     public static final int KM_MODE_CBC = 2;
-    public static final int KM_MODE_CBC_CTS = 3;
     public static final int KM_MODE_CTR = 4;
-    public static final int KM_MODE_OFB = 5;
-    public static final int KM_MODE_CFB = 6;
-    public static final int KM_MODE_XTS = 7;
     public static final int KM_MODE_FIRST_AUTHENTICATED = 32;
     public static final int KM_MODE_GCM = KM_MODE_FIRST_AUTHENTICATED;
-    public static final int KM_MODE_OCB = 33;
-    public static final int KM_MODE_CCM = 34;
-    public static final int KM_MODE_FIRST_MAC = 128;
-    public static final int KM_MODE_CMAC = KM_MODE_FIRST_MAC;
-    public static final int KM_MODE_POLY1305 = 129;
 
     // Padding modes.
     public static final int KM_PAD_NONE = 1;
@@ -132,11 +106,7 @@ public final class KeymasterDefs {
     public static final int KM_PAD_RSA_PSS = 3;
     public static final int KM_PAD_RSA_PKCS1_1_5_ENCRYPT = 4;
     public static final int KM_PAD_RSA_PKCS1_1_5_SIGN = 5;
-    public static final int KM_PAD_ANSI_X923 = 32;
-    public static final int KM_PAD_ISO_10126 = 33;
-    public static final int KM_PAD_ZERO = 64;
-    public static final int KM_PAD_PKCS7 = 65;
-    public static final int KM_PAD_ISO_7816_4 = 66;
+    public static final int KM_PAD_PKCS7 = 64;
 
     // Digest modes.
     public static final int KM_DIGEST_NONE = 0;
@@ -146,9 +116,6 @@ public final class KeymasterDefs {
     public static final int KM_DIGEST_SHA_2_256 = 4;
     public static final int KM_DIGEST_SHA_2_384 = 5;
     public static final int KM_DIGEST_SHA_2_512 = 6;
-    public static final int KM_DIGEST_SHA_3_256 = 7;
-    public static final int KM_DIGEST_SHA_3_384 = 8;
-    public static final int KM_DIGEST_SHA_3_512 = 9;
 
     // Key origins.
     public static final int KM_ORIGIN_HARDWARE = 0;
@@ -168,8 +135,10 @@ public final class KeymasterDefs {
     // Key formats.
     public static final int KM_KEY_FORMAT_X509 = 0;
     public static final int KM_KEY_FORMAT_PKCS8 = 1;
-    public static final int KM_KEY_FORMAT_PKCS12 = 2;
     public static final int KM_KEY_FORMAT_RAW = 3;
+
+    // User authenticators.
+    public static final int HW_AUTH_PASSWORD = 1 << 0;
 
     // Error codes.
     public static final int KM_ERROR_OK = 0;
@@ -215,7 +184,6 @@ public final class KeymasterDefs {
     public static final int KM_ERROR_INVALID_TAG = -40;
     public static final int KM_ERROR_MEMORY_ALLOCATION_FAILED = -41;
     public static final int KM_ERROR_INVALID_RESCOPING = -42;
-    public static final int KM_ERROR_INVALID_DSA_PARAMS = -43;
     public static final int KM_ERROR_IMPORT_PARAMETER_MISMATCH = -44;
     public static final int KM_ERROR_SECURE_HW_ACCESS_DENIED = -45;
     public static final int KM_ERROR_OPERATION_CANCELLED = -46;

@@ -17,10 +17,7 @@
 package android.security;
 
 import java.security.spec.KeySpec;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Information about a key from the <a href="{@docRoot}training/articles/keystore.html">Android
@@ -31,40 +28,41 @@ import java.util.Set;
 public class KeyStoreKeySpec implements KeySpec {
     private final String mKeystoreAlias;
     private final int mKeySize;
+    private final boolean mTeeBacked;
     private final @KeyStoreKeyCharacteristics.OriginEnum int mOrigin;
     private final Date mKeyValidityStart;
     private final Date mKeyValidityForOriginationEnd;
     private final Date mKeyValidityForConsumptionEnd;
     private final @KeyStoreKeyConstraints.PurposeEnum int mPurposes;
     private final @KeyStoreKeyConstraints.AlgorithmEnum int mAlgorithm;
-    private final @KeyStoreKeyConstraints.PaddingEnum Integer mPadding;
-    private final @KeyStoreKeyConstraints.DigestEnum Integer mDigest;
-    private final @KeyStoreKeyConstraints.BlockModeEnum Integer mBlockMode;
-    private final Integer mMinSecondsBetweenOperations;
-    private final Integer mMaxUsesPerBoot;
-    private final Set<Integer> mUserAuthenticators;
-    private final Set<Integer> mTeeBackedUserAuthenticators;
-    private final Integer mUserAuthenticationValidityDurationSeconds;
+    private final @KeyStoreKeyConstraints.PaddingEnum int mPaddings;
+    private final @KeyStoreKeyConstraints.DigestEnum int mDigests;
+    private final @KeyStoreKeyConstraints.BlockModeEnum int mBlockModes;
+    private final @KeyStoreKeyConstraints.UserAuthenticatorEnum int mUserAuthenticators;
+    private final @KeyStoreKeyConstraints.UserAuthenticatorEnum int mTeeEnforcedUserAuthenticators;
+    private final int mUserAuthenticationValidityDurationSeconds;
 
 
     /**
      * @hide
      */
     KeyStoreKeySpec(String keystoreKeyAlias,
+            boolean teeBacked,
             @KeyStoreKeyCharacteristics.OriginEnum int origin,
-            int keySize, Date keyValidityStart, Date keyValidityForOriginationEnd,
+            int keySize,
+            Date keyValidityStart,
+            Date keyValidityForOriginationEnd,
             Date keyValidityForConsumptionEnd,
             @KeyStoreKeyConstraints.PurposeEnum int purposes,
             @KeyStoreKeyConstraints.AlgorithmEnum int algorithm,
-            @KeyStoreKeyConstraints.PaddingEnum Integer padding,
-            @KeyStoreKeyConstraints.DigestEnum Integer digest,
-            @KeyStoreKeyConstraints.BlockModeEnum Integer blockMode,
-            Integer minSecondsBetweenOperations,
-            Integer maxUsesPerBoot,
-            Set<Integer> userAuthenticators,
-            Set<Integer> teeBackedUserAuthenticators,
-            Integer userAuthenticationValidityDurationSeconds) {
+            @KeyStoreKeyConstraints.PaddingEnum int paddings,
+            @KeyStoreKeyConstraints.DigestEnum int digests,
+            @KeyStoreKeyConstraints.BlockModeEnum int blockModes,
+            @KeyStoreKeyConstraints.UserAuthenticatorEnum int userAuthenticators,
+            @KeyStoreKeyConstraints.UserAuthenticatorEnum int teeEnforcedUserAuthenticators,
+            int userAuthenticationValidityDurationSeconds) {
         mKeystoreAlias = keystoreKeyAlias;
+        mTeeBacked = teeBacked;
         mOrigin = origin;
         mKeySize = keySize;
         mKeyValidityStart = keyValidityStart;
@@ -72,17 +70,11 @@ public class KeyStoreKeySpec implements KeySpec {
         mKeyValidityForConsumptionEnd = keyValidityForConsumptionEnd;
         mPurposes = purposes;
         mAlgorithm = algorithm;
-        mPadding = padding;
-        mDigest = digest;
-        mBlockMode = blockMode;
-        mMinSecondsBetweenOperations = minSecondsBetweenOperations;
-        mMaxUsesPerBoot = maxUsesPerBoot;
-        mUserAuthenticators = (userAuthenticators != null)
-                ? new HashSet<Integer>(userAuthenticators)
-                : Collections.<Integer>emptySet();
-        mTeeBackedUserAuthenticators = (teeBackedUserAuthenticators != null)
-                ? new HashSet<Integer>(teeBackedUserAuthenticators)
-                : Collections.<Integer>emptySet();
+        mPaddings = paddings;
+        mDigests = digests;
+        mBlockModes = blockModes;
+        mUserAuthenticators = userAuthenticators;
+        mTeeEnforcedUserAuthenticators = teeEnforcedUserAuthenticators;
         mUserAuthenticationValidityDurationSeconds = userAuthenticationValidityDurationSeconds;
     }
 
@@ -94,6 +86,14 @@ public class KeyStoreKeySpec implements KeySpec {
     }
 
     /**
+     * Returns {@code true} if the key is TEE-backed. Key material of TEE-backed keys is available
+     * in plaintext only inside the TEE.
+     */
+    public boolean isTeeBacked() {
+        return mTeeBacked;
+    }
+
+    /**
      * Gets the origin of the key.
      */
     public @KeyStoreKeyCharacteristics.OriginEnum int getOrigin() {
@@ -101,7 +101,7 @@ public class KeyStoreKeySpec implements KeySpec {
     }
 
     /**
-     * Gets the key's size in bits.
+     * Gets the size of the key in bits.
      */
     public int getKeySize() {
         return mKeySize;
@@ -149,78 +149,53 @@ public class KeyStoreKeySpec implements KeySpec {
     }
 
     /**
-     * Gets the only block mode with which the key can be used.
-     *
-     * @return block mode or {@code null} if the block mode is not restricted.
+     * Gets the set of block modes with which the key can be used.
      */
-    public @KeyStoreKeyConstraints.BlockModeEnum Integer getBlockMode() {
-        return mBlockMode;
+    public @KeyStoreKeyConstraints.BlockModeEnum int getBlockModes() {
+        return mBlockModes;
     }
 
     /**
-     * Gets the only padding mode with which the key can be used.
-     *
-     * @return padding mode or {@code null} if the padding mode is not restricted.
+     * Gets the set of padding modes with which the key can be used.
      */
-    public @KeyStoreKeyConstraints.PaddingEnum Integer getPadding() {
-        return mPadding;
+    public @KeyStoreKeyConstraints.PaddingEnum int getPaddings() {
+        return mPaddings;
     }
 
     /**
-     * Gets the only digest algorithm with which the key can be used.
-     *
-     * @return digest algorithm or {@code null} if the digest algorithm is not restricted.
+     * Gets the set of digest algorithms with which the key can be used.
      */
-    public @KeyStoreKeyConstraints.DigestEnum Integer getDigest() {
-        return mDigest;
+    public @KeyStoreKeyConstraints.DigestEnum int getDigests() {
+        return mDigests;
     }
 
     /**
-     * Gets the minimum number of seconds that must expire since the most recent use of the key
-     * before it can be used again.
+     * Gets the set of user authenticators which protect access to the key. The key can only be used
+     * iff the user has authenticated to at least one of these user authenticators.
      *
-     * @return number of seconds or {@code null} if there is no restriction on how frequently a key
-     *         can be used.
+     * @return user authenticators or {@code 0} if the key can be used without user authentication.
      */
-    public Integer getMinSecondsBetweenOperations() {
-        return mMinSecondsBetweenOperations;
+    public @KeyStoreKeyConstraints.UserAuthenticatorEnum int getUserAuthenticators() {
+        return mUserAuthenticators;
     }
 
     /**
-     * Gets the number of times the key can be used without rebooting the device.
-     *
-     * @return maximum number of times or {@code null} if there is no restriction.
+     * Gets the set of user authenticators for which the TEE enforces access restrictions for this
+     * key. This is a subset of the user authentications returned by
+     * {@link #getUserAuthenticators()}.
      */
-    public Integer getMaxUsesPerBoot() {
-        return mMaxUsesPerBoot;
-    }
-
-    /**
-     * Gets the user authenticators which protect access to the key. The key can only be used iff
-     * the user has authenticated to at least one of these user authenticators.
-     *
-     * @return user authenticators or empty set if the key can be used without user authentication.
-     */
-    public Set<Integer> getUserAuthenticators() {
-        return new HashSet<Integer>(mUserAuthenticators);
-    }
-
-    /**
-     * Gets the TEE-backed user authenticators which protect access to the key. This is a subset of
-     * the user authentications returned by {@link #getUserAuthenticators()}.
-     */
-    public Set<Integer> getTeeBackedUserAuthenticators() {
-        return new HashSet<Integer>(mTeeBackedUserAuthenticators);
+    public @KeyStoreKeyConstraints.UserAuthenticatorEnum int getTeeEnforcedUserAuthenticators() {
+        return mTeeEnforcedUserAuthenticators;
     }
 
     /**
      * Gets the duration of time (seconds) for which the key can be used after the user
      * successfully authenticates to one of the associated user authenticators.
      *
-     * @return duration in seconds or {@code null} if not restricted. {@code 0} means authentication
+     * @return duration in seconds or {@code -1} if not restricted. {@code 0} means authentication
      *         is required for every use of the key.
      */
-    public Integer getUserAuthenticationValidityDurationSeconds() {
+    public int getUserAuthenticationValidityDurationSeconds() {
         return mUserAuthenticationValidityDurationSeconds;
     }
 }

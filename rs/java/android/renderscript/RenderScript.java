@@ -130,8 +130,6 @@ public class RenderScript {
     native void nContextInitToClient(long con);
     native void nContextDeinitToClient(long con);
 
-    static File mCacheDir;
-
     // this should be a monotonically increasing ID
     // used in conjunction with the API version of a device
     static final long sMinorID = 1;
@@ -144,23 +142,6 @@ public class RenderScript {
      */
     public static long getMinorID() {
         return sMinorID;
-    }
-
-     /**
-     * Sets the directory to use as a persistent storage for the
-     * renderscript object file cache.
-     *
-     * @hide
-     * @param cacheDir A directory the current process can write to
-     */
-    public static void setupDiskCache(File cacheDir) {
-        if (!sInitialized) {
-            Log.e(LOG_TAG, "RenderScript.setupDiskCache() called when disabled");
-            return;
-        }
-
-        // Defer creation of cache path to nScriptCCreate().
-        mCacheDir = cacheDir;
     }
 
     /**
@@ -250,6 +231,11 @@ public class RenderScript {
     synchronized void nContextSetPriority(int p) {
         validate();
         rsnContextSetPriority(mContext, p);
+    }
+    native void rsnContextSetCacheDir(long con, String cacheDir);
+    synchronized void nContextSetCacheDir(String cacheDir) {
+        validate();
+        rsnContextSetCacheDir(mContext, cacheDir);
     }
     native void rsnContextDump(long con, int bits);
     synchronized void nContextDump(int bits) {
@@ -1346,6 +1332,14 @@ public class RenderScript {
         if (rs.mContext == 0) {
             throw new RSDriverException("Failed to create RS context.");
         }
+
+        // set up cache directory for entire context
+        final String CACHE_PATH = "com.android.renderscript.cache";
+        File f = new File(RenderScriptCacheDir.mCacheDir, CACHE_PATH);
+        String mCachePath = f.getAbsolutePath();
+        f.mkdirs();
+        rs.nContextSetCacheDir(mCachePath);
+
         rs.mMessageThread = new MessageThread(rs);
         rs.mMessageThread.start();
         return rs;

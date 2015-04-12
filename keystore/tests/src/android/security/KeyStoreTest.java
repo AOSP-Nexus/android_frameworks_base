@@ -294,14 +294,14 @@ public class KeyStoreTest extends ActivityUnitTestCase<Activity> {
 
     public void testSaw_ungrantedUid_Bluetooth() throws Exception {
         String[] results1 = mKeyStore.saw(TEST_KEYNAME, Process.BLUETOOTH_UID);
-        assertNull(results1);
+        assertEquals(0, results1.length);
 
         mKeyStore.password(TEST_PASSWD);
         mKeyStore.put(TEST_KEYNAME1, TEST_KEYVALUE, KeyStore.UID_SELF, KeyStore.FLAG_ENCRYPTED);
         mKeyStore.put(TEST_KEYNAME2, TEST_KEYVALUE, KeyStore.UID_SELF, KeyStore.FLAG_ENCRYPTED);
 
         String[] results2 = mKeyStore.saw(TEST_KEYNAME, Process.BLUETOOTH_UID);
-        assertNull(results2);
+        assertEquals(0, results2.length);
     }
 
     public void testSaw_grantedUid_Wifi() throws Exception {
@@ -798,7 +798,7 @@ public class KeyStoreTest extends ActivityUnitTestCase<Activity> {
         // TODO: Verify we have an RSA public key that's well formed.
     }
 
-    public void testAesOcbEncryptSuccess() throws Exception {
+    public void testAesGcmEncryptSuccess() throws Exception {
         String name = "test";
         KeymasterArguments args = new KeymasterArguments();
         args.addInt(KeymasterDefs.KM_TAG_PURPOSE, KeymasterDefs.KM_PURPOSE_ENCRYPT);
@@ -806,7 +806,7 @@ public class KeyStoreTest extends ActivityUnitTestCase<Activity> {
         args.addInt(KeymasterDefs.KM_TAG_ALGORITHM, KeymasterDefs.KM_ALGORITHM_AES);
         args.addInt(KeymasterDefs.KM_TAG_PADDING, KeymasterDefs.KM_PAD_NONE);
         args.addInt(KeymasterDefs.KM_TAG_KEY_SIZE, 256);
-        args.addInt(KeymasterDefs.KM_TAG_BLOCK_MODE, KeymasterDefs.KM_MODE_OCB);
+        args.addInt(KeymasterDefs.KM_TAG_BLOCK_MODE, KeymasterDefs.KM_MODE_GCM);
         args.addInt(KeymasterDefs.KM_TAG_CHUNK_LENGTH, 4096);
         args.addInt(KeymasterDefs.KM_TAG_MAC_LENGTH, 16);
         args.addBoolean(KeymasterDefs.KM_TAG_NO_AUTH_REQUIRED);
@@ -903,9 +903,7 @@ public class KeyStoreTest extends ActivityUnitTestCase<Activity> {
         args.addInt(KeymasterDefs.KM_TAG_ALGORITHM, KeymasterDefs.KM_ALGORITHM_AES);
         args.addInt(KeymasterDefs.KM_TAG_PADDING, KeymasterDefs.KM_PAD_NONE);
         args.addInt(KeymasterDefs.KM_TAG_KEY_SIZE, 256);
-        args.addInt(KeymasterDefs.KM_TAG_BLOCK_MODE, KeymasterDefs.KM_MODE_OCB);
-        args.addInt(KeymasterDefs.KM_TAG_CHUNK_LENGTH, 4096);
-        args.addInt(KeymasterDefs.KM_TAG_MAC_LENGTH, 16);
+        args.addInt(KeymasterDefs.KM_TAG_BLOCK_MODE, KeymasterDefs.KM_MODE_CTR);
         args.addBoolean(KeymasterDefs.KM_TAG_NO_AUTH_REQUIRED);
 
         KeyCharacteristics outCharacteristics = new KeyCharacteristics();
@@ -935,11 +933,9 @@ public class KeyStoreTest extends ActivityUnitTestCase<Activity> {
         args.addInt(KeymasterDefs.KM_TAG_PURPOSE, KeymasterDefs.KM_PURPOSE_ENCRYPT);
         args.addInt(KeymasterDefs.KM_TAG_PURPOSE, KeymasterDefs.KM_PURPOSE_DECRYPT);
         args.addInt(KeymasterDefs.KM_TAG_ALGORITHM, KeymasterDefs.KM_ALGORITHM_AES);
-        args.addInt(KeymasterDefs.KM_TAG_PADDING, KeymasterDefs.KM_PAD_NONE);
+        args.addInt(KeymasterDefs.KM_TAG_PADDING, KeymasterDefs.KM_PAD_PKCS7);
         args.addInt(KeymasterDefs.KM_TAG_KEY_SIZE, 256);
-        args.addInt(KeymasterDefs.KM_TAG_BLOCK_MODE, KeymasterDefs.KM_MODE_OCB);
-        args.addInt(KeymasterDefs.KM_TAG_CHUNK_LENGTH, 4096);
-        args.addInt(KeymasterDefs.KM_TAG_MAC_LENGTH, 16);
+        args.addInt(KeymasterDefs.KM_TAG_BLOCK_MODE, KeymasterDefs.KM_MODE_ECB);
         args.addInt(KeymasterDefs.KM_TAG_USER_AUTH_TYPE, 1);
 
         KeyCharacteristics outCharacteristics = new KeyCharacteristics();
