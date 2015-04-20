@@ -2670,12 +2670,6 @@ public final class Settings {
         /** @hide */ public static final int HEADS_UP_TICKER_ON = 1;
 
         /**
-         * Volume rocker wake
-         * @hide
-         */
-        public static final String VOLUME_WAKE = "volume_wake";
-
-        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
