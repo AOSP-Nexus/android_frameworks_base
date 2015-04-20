@@ -46,6 +46,7 @@ public class CastTile extends QSTile<QSTile.BooleanState> {
     private final CastDetailAdapter mDetailAdapter;
     private final KeyguardMonitor mKeyguard;
     private final Callback mCallback = new Callback();
+    private final UsageTracker mUsageTracker;
 
     public CastTile(Host host) {
         super(host);
