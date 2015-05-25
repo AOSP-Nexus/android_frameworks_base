@@ -2676,6 +2676,12 @@ public final class Settings {
         public static final String VOLUME_WAKE_SCREEN = "volume_wake_screen";
 
         /**
+         * Add global SystemUI flags (e.g. for immersive mode)
+         * @hide
+         */
+        public static final String SYSTEM_UI_FLAGS = "system_ui_flags";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *

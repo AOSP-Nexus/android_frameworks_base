@@ -569,6 +569,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     private int mCurrentUserId;
 
+    private int mSystemUIImmersiveFlags = 0;
+
     // Maps global key codes to the components that will handle them.
     private GlobalKeyManager mGlobalKeyManager;
 
@@ -698,6 +700,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.VOLUME_WAKE_SCREEN), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.SYSTEM_UI_FLAGS), false, this,
                     UserHandle.USER_ALL);
             updateSettings();
         }
@@ -1556,6 +1561,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
             mVolumeWakeScreen = Settings.System.getIntForUser(resolver,
                     Settings.System.VOLUME_WAKE_SCREEN, 0, UserHandle.USER_CURRENT) != 0;
+
+            mSystemUIImmersiveFlags = Settings.System.getIntForUser(resolver,
+                    Settings.System.SYSTEM_UI_FLAGS, 0, UserHandle.USER_CURRENT);
 
             if (mSystemReady) {
                 int pointerLocation = Settings.System.getIntForUser(resolver,
@@ -6095,7 +6103,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
         int tmpVisibility = PolicyControl.getSystemUiVisibility(win, null)
                 & ~mResettingSystemUiFlags
-                & ~mForceClearedSystemUiFlags;
+                & ~mForceClearedSystemUiFlags
+                | mSystemUIImmersiveFlags;
         if (mForcingShowNavBar && win.getSurfaceLayer() < mForcingShowNavBarLayer) {
             tmpVisibility &= ~PolicyControl.adjustClearableFlags(win, View.SYSTEM_UI_CLEARABLE_FLAGS);
         }
